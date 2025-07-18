@@ -1,5 +1,6 @@
 import { ethers } from 'ethers';
-import prisma from '../configuration-rules/prisma-client.js';
+import pino from 'pino';
+import prisma from '../common/prisma-client.js';
 import { buildTransactionForDBSave } from './helpers/build-transaction-for-db-save.js';
 import { calculateRelevantRulesForTransaction } from './helpers/calculate-relevant-rules-for-transaction.js';
 import {
@@ -9,7 +10,14 @@ import {
 } from './helpers/rules-fetch-and-notify.js';
 import { matchTransactionToRules } from './helpers/rules-matcher.js';
 
-const INFURA_PROJECT_ID = '8059b16544604915b32e6016f90736b4';
+const logger = pino({
+  name: 'txwatcher',
+  level: process.env.LOG_LEVEL || 'info',
+});
+
+const INFURA_PROJECT_ID = process.env.INFURA_PROJECT_ID;
+
+console.log(INFURA_PROJECT_ID);
 
 const provider = new ethers.JsonRpcProvider(
   `https://mainnet.infura.io/v3/${INFURA_PROJECT_ID}`,
@@ -18,16 +26,23 @@ const provider = new ethers.JsonRpcProvider(
 await startRuleWatcher();
 await ready;
 
+logger.info('📡 Rule watcher initialized and ready');
+
 provider.on('block', async (blockNumber) => {
   const rules = getCachedRules();
+
+  console.log(`${rules.length}`);
+  logger.info(
+    { blockNumber, ruleCount: rules.length },
+    '📦 New block received',
+  );
+
   try {
     const transactionsBlock = await provider.getBlock(blockNumber, true);
     const insertQueue = [];
 
     for (const transactionHash of transactionsBlock.transactions) {
       const transaction = await provider.getTransaction(transactionHash);
-
-      console.log(transaction);
 
       const relevantRules = calculateRelevantRulesForTransaction(
         transaction,
@@ -39,17 +54,23 @@ provider.on('block', async (blockNumber) => {
       for (const rule of matchedRules) {
         insertQueue.push(buildTransactionForDBSave(rule, transaction));
       }
+    }
 
-      if (insertQueue.length > 0) {
-        await prisma.transactions.createMany({
-          data: insertQueue,
-          skipDuplicates: true,
-        });
+    if (insertQueue.length > 0) {
+      const result = await prisma.transactions.createMany({
+        data: insertQueue,
+        skipDuplicates: true,
+      });
 
-        console.log(`Inserted ${insertQueue.length} matched transactions`);
-      }
+      logger.info(
+        {
+          inserted: result.count,
+          totalMatched: insertQueue.length,
+        },
+        '📝 Transactions inserted to DB (deduplicated)',
+      );
     }
   } catch (err) {
-    console.error(`Error fetching block ${blockNumber}:`, err);
+    logger.error({ err, blockNumber }, '❌ Error fetching or processing block');
   }
 });
