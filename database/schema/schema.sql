@@ -29,3 +29,11 @@ CREATE TABLE IF NOT EXISTS transactions (
     rule_id INTEGER NOT NULL REFERENCES config_rules(id) ON DELETE CASCADE,
     matched_at TIMESTAMP DEFAULT NOW()
 );
+
+INSERT INTO config_rules (name, min_value_eth, max_value_eth, type)
+VALUES ('Initial Rule', 1234, 12341234, 1)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO config_rules (name, min_gas_price_gwei, type)
+VALUES ('Min Gas Rule', 1234, 2)
+ON CONFLICT DO NOTHING;
