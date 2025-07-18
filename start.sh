@@ -16,6 +16,11 @@ EOF
 
 echo "✅ .env file created."
 
+echo "📝 Creating .env.prisma.studio file..."
+cat > .env.prisma.studio <<EOF
+DATABASE_URL=postgresql://myuser:mypass@localhost:5433/transaction_watchdog
+EOF
+
 
 echo "🚀 Starting infrastructure containers (PostgreSQL, Grafana, Loki, Promtail)..."
 docker-compose up --build -d postgres grafana loki promtail configapi txwatcher
@@ -42,7 +47,7 @@ npm install
 sleep 2
 
 echo "🎨 Opening Prisma Studio..."
-dotenv -e .env.studio -- npx prisma studio
+dotenv -e .env.prisma.studio -- npx prisma studio
 
 # Handle Ctrl+C gracefully
 trap "echo '🛑 Shutting down...'; kill $RULES_PID $TX_PID; docker-compose down; exit 0" SIGINT
