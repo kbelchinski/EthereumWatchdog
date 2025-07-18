@@ -40,7 +40,7 @@ EthereumWatchdog/
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-org/EthereumWatchdog.git
+git clone https://github.com/kbelchinski/EthereumWatchdog.git
 cd EthereumWatchdog
 ```
 
@@ -64,6 +64,42 @@ This will:
 - Launch Prisma Studio
 
 ---
+
+## 🧾 Data Format
+
+### Rules Table (`config_rules`)
+
+| Field                | Type     | Description                         |
+| -------------------- | -------- | ----------------------------------- |
+| `id`                 | Int      | Primary key                         |
+| `name`               | String   | Rule name                           |
+| `from_address`       | String?  | Filter by sender address (optional) |
+| `to_address`         | String?  | Filter by recipient address         |
+| `min_value_eth`      | Decimal? | Minimum ETH value (optional)        |
+| `max_value_eth`      | Decimal? | Maximum ETH value (optional)        |
+| `require_data`       | Boolean? | Require transaction data flag       |
+| `min_gas_price_gwei` | Decimal? | Min gas price in gwei               |
+| `type`               | Int?     | Type of rule (custom-defined)       |
+| `is_active`          | Boolean  | Active status                       |
+| `created_at`         | DateTime | Creation timestamp                  |
+| `updated_at`         | DateTime | Update timestamp                    |
+
+---
+
+### Transactions Table (`transactions`)
+
+| Field          | Type     | Description               |
+| -------------- | -------- | ------------------------- |
+| `id`           | Int      | Primary key               |
+| `tx_hash`      | String   | Ethereum transaction hash |
+| `block_number` | Int      | Block number              |
+| `from_address` | String   | Sender address            |
+| `to_address`   | String?  | Recipient address         |
+| `value`        | Decimal? | ETH value (in wei)        |
+| `gas_price`    | BigInt?  | Gas price (in wei)        |
+| `nonce`        | Int?     | Transaction nonce         |
+| `rule_id`      | Int      | Linked rule ID            |
+| `matched_at`   | DateTime | Match timestamp           |
 
 ## 🧠 Usage
 
@@ -137,7 +173,7 @@ You can browse the database using either:
 
 ### Setup Loki as Data Source
 
-1. Go to ⚙️ **Configuration** > **Data Sources**
+1. Go to ⚙️ **Data Sources** (left side menu)
 2. Click **Add data source**
 3. Choose **Loki**
 4. Set:
@@ -155,3 +191,5 @@ You can browse the database using either:
 ### Notes
 
 1. Blockchain API has strong rate limitation - if the number of requests per user per time is exceeded, error for "Too many request can be seen"
+2. If prisma studio do not open in browser from the bootstrap script, execute **npx prisma generate --force** to clear caches firts.
+3. If prisma studio on localhost:5555, do not work and gives error when opened in the browser install globally dotenv **npm i dotenv -g**. This is needed for the bootstrap script to generate the prisma studio config file.
